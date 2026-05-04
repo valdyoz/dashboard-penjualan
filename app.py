@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 
 # =============================================
 # KONFIGURASI HALAMAN
@@ -12,13 +11,18 @@ st.set_page_config(page_title="Dashboard Penjualan", layout="wide")
 # =============================================
 @st.cache_data
 def load_data():
-    # Baca file Excel
     df = pd.read_excel("Book1.xlsx")
 
-    # BERSIHKAN NAMA KOLOM DARI SPASI TERSEMBUNYI
-    df.columns = df.columns.str.strip()
+    # Bersihkan nama kolom
+    new_columns = []
+    for col in df.columns:
+        try:
+            new_columns.append(str(col).strip())
+        except:
+            new_columns.append(col)
+    df.columns = new_columns
 
-    # Konversi kolom tanggal (format Indonesia: dd/mm/yyyy)
+    # Konversi kolom tanggal
     df["Tanggal"] = pd.to_datetime(df["Tanggal"], dayfirst=True)
 
     # Hitung kolom Total
@@ -33,11 +37,9 @@ df = load_data()
 # =============================================
 st.sidebar.header("🔍 Filter Data")
 
-# Filter Wilayah
 list_wilayah = ["Semua"] + list(df["Wilayah"].unique())
 pilihan_wilayah = st.sidebar.selectbox("Pilih Wilayah", list_wilayah)
 
-# Filter Tanggal
 min_date = df["Tanggal"].min().date()
 max_date = df["Tanggal"].max().date()
 pilihan_tanggal = st.sidebar.date_input(
@@ -47,7 +49,6 @@ pilihan_tanggal = st.sidebar.date_input(
     max_value=max_date
 )
 
-# Terapkan Filter
 df_filtered = df.copy()
 if pilihan_wilayah != "Semua":
     df_filtered = df_filtered[df_filtered["Wilayah"] == pilihan_wilayah]
@@ -62,11 +63,11 @@ if len(pilihan_tanggal) == 2:
 # =============================================
 # JUDUL
 # =============================================
-st.title("📊 Dashboard Penjualan - Book1")
+st.title("📊 Dashboard Penjualan")
 st.markdown("---")
 
 # =============================================
-# METRIC CARDS (KPI)
+# METRIC CARDS
 # =============================================
 col1, col2, col3 = st.columns(3)
 
@@ -74,7 +75,6 @@ total_penjualan = df_filtered["Total"].sum()
 total_qty = df_filtered["Qty"].sum()
 rata_transaksi = df_filtered["Total"].mean()
 
-# Cegah error kalau data kosong
 if pd.isna(rata_transaksi):
     rata_transaksi = 0
 
@@ -90,44 +90,30 @@ with col3:
 st.markdown("---")
 
 # =============================================
-# VISUALISASI
+# VISUALISASI (STREAMLIT NATIVE - TANPA PLOTLY)
 # =============================================
-# Hanya tampilkan grafik kalau data ada
 if not df_filtered.empty:
     col_left, col_right = st.columns(2)
 
     with col_left:
         st.subheader("📈 Tren Penjualan Harian")
         df_harian = df_filtered.groupby("Tanggal")["Total"].sum().reset_index()
-        fig_line = px.line(
-            df_harian, x="Tanggal", y="Total",
-            labels={"Total": "Total Penjualan (Rp)"},
-            template="plotly_white"
-        )
-        fig_line.update_traces(line_color="#2E86C1")
-        st.plotly_chart(fig_line, use_container_width=True)
+        df_harian = df_harian.set_index("Tanggal")
+        st.line_chart(df_harian, use_container_width=True)
 
     with col_right:
         st.subheader("📊 Penjualan per Produk")
-        df_produk = df_filtered.groupby("Produk")["Total"].sum().reset_index().sort_values("Total", ascending=False)
-        fig_bar = px.bar(
-            df_produk, x="Produk", y="Total", color="Produk",
-            labels={"Total": "Total Penjualan (Rp)"},
-            template="plotly_white"
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        df_produk = df_filtered.groupby("Produk")["Total"].sum().reset_index()
+        df_produk = df_produk.set_index("Produk")
+        st.bar_chart(df_produk, use_container_width=True)
 
     col_left2, col_right2 = st.columns([1, 1])
 
     with col_left2:
         st.subheader("🗺️ Kontribusi per Wilayah")
         df_wilayah = df_filtered.groupby("Wilayah")["Total"].sum().reset_index()
-        fig_pie = px.pie(
-            df_wilayah, values="Total", names="Wilayah",
-            hole=0.4,
-            template="plotly_white"
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
+        # Pie chart pakai bar chart horizontal sebagai gantinya
+        st.bar_chart(df_wilayah.set_index("Wilayah"), use_container_width=True, horizontal=True)
 
     with col_right2:
         st.subheader("📦 Transaksi Terbesar")
@@ -137,9 +123,6 @@ if not df_filtered.empty:
 
     st.markdown("---")
 
-    # =============================================
-    # TABEL DETAIL (TOGGLE)
-    # =============================================
     st.subheader("📋 Data Detail")
     if st.checkbox("Tampilkan Semua Data"):
         st.dataframe(df_filtered, use_container_width=True, hide_index=True)
