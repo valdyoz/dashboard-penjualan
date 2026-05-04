@@ -23,10 +23,15 @@ def load_data():
             new_columns.append(col)
     df.columns = new_columns
 
-    # Konversi kolom tanggal (format Indonesia: dd/mm/yyyy)
-    df["Tanggal"] = pd.to_datetime(df["Tanggal"], dayfirst=True)
+    # Konversi kolom tanggal - pakai errors='coerce' untuk abaikan error
+    df["Tanggal"] = pd.to_datetime(df["Tanggal"], dayfirst=True, errors="coerce")
+    
+    # Hapus baris yang tanggalnya gagal dikonversi
+    df = df.dropna(subset=["Tanggal"])
 
     # Hitung kolom Total
+    df["Qty"] = pd.to_numeric(df["Qty"], errors="coerce")
+    df["Harga"] = pd.to_numeric(df["Harga"], errors="coerce")
     df["Total"] = df["Qty"] * df["Harga"]
 
     return df
