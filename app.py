@@ -11,9 +11,10 @@ st.set_page_config(page_title="Dashboard Penjualan", layout="wide")
 # =============================================
 @st.cache_data
 def load_data():
-    df = pd.read_csv("data.csv")
+    # Baca CSV dengan pemisah titik koma (format Indonesia)
+    df = pd.read_csv("data.csv", sep=";")
 
-    # Bersihkan nama kolom
+    # Bersihkan nama kolom dari spasi
     new_columns = []
     for col in df.columns:
         try:
@@ -22,7 +23,7 @@ def load_data():
             new_columns.append(col)
     df.columns = new_columns
 
-    # Konversi kolom tanggal
+    # Konversi kolom tanggal (format Indonesia: dd/mm/yyyy)
     df["Tanggal"] = pd.to_datetime(df["Tanggal"], dayfirst=True)
 
     # Hitung kolom Total
