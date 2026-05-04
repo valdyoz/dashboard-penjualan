@@ -11,7 +11,7 @@ st.set_page_config(page_title="Dashboard Penjualan", layout="wide")
 # =============================================
 @st.cache_data
 def load_data():
-    df = pd.read_excel("data.csv")
+    df = pd.read_csv("data.csv")
 
     # Bersihkan nama kolom
     new_columns = []
